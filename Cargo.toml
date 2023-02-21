@@ -32,6 +32,7 @@ multipart = { version = "0.16.1", default-features = false, features = ["server"
 htmlescape = "0.3.1"
 percent-encoding = "2.1.0"
 path-dedot = "1"
+urlencoding = "2.1.2"
 
 [features]
 default = ["native-tls"]

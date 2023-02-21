@@ -37,6 +37,7 @@ use util::{
 };
 
 use middlewares::{AuthChecker, CompressionHandler, RequestLogger};
+use urlencoding::encode;
 
 const ORDER_ASC: &str = "asc";
 const ORDER_DESC: &str = "desc";
@@ -892,6 +893,14 @@ impl MainHandler {
                 resp.headers.set(ContentLength(metadata.len()));
             }
             Method::Get => {
+                let file_name = path.file_name().unwrap().to_str().unwrap();
+                let file_name_enc = encode(file_name).into_owned();
+                let content_disposition = format!("inline;filename* = UTF-8''{}", file_name_enc);
+                resp.headers.set_raw(
+                    "Content-Disposition",
+                    vec![content_disposition.into_bytes()],
+                );
+
                 // Set mime type
                 let mime = mime_types::from_path(path).first_or_octet_stream();
                 resp.headers
