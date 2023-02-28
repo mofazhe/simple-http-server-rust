@@ -10,7 +10,11 @@
             "type": "cppvsdbg",
             "request": "launch",
             "program": "${workspaceFolder}/target/debug/${workspaceFolderBasename}.exe",
-            "args": [],
+            "args": [
+                "-p",
+                "8002",
+                "C:\\Home\\Share"
+            ],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],

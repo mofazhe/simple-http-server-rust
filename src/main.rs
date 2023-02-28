@@ -41,14 +41,14 @@ use urlencoding::encode;
 
 const ORDER_ASC: &str = "asc";
 const ORDER_DESC: &str = "desc";
-const DEFAULT_ORDER: &str = ORDER_DESC;
+const DEFAULT_ORDER: &str = ORDER_ASC;
 
 lazy_static! {
     static ref SORT_FIELDS: Vec<&'static str> = vec!["name", "modified", "size"];
 }
 
 fn main() {
-    let matches = clap::App::new("Simple HTTP(s) Server")
+    let matches = clap::App::new("Simple HTTP(s) Server (modified by mfz v0.0.1)")
         .setting(clap::AppSettings::ColoredHelp)
         .version(crate_version!())
         .arg(clap::Arg::with_name("root")
@@ -672,25 +672,26 @@ impl MainHandler {
 
                 let reverse = order == ORDER_DESC;
                 entries.sort_by(|a, b| {
-                    let rv = match field.as_str() {
-                        "name" => a.filename.cmp(&b.filename),
-                        "modified" => {
-                            let a = a.metadata.modified().unwrap();
-                            let b = b.metadata.modified().unwrap();
-                            a.cmp(&b)
-                        }
-                        "size" => {
-                            if a.metadata.is_dir() == b.metadata.is_dir()
-                                || a.metadata.is_file() == b.metadata.is_file()
-                            {
-                                a.metadata.len().cmp(&b.metadata.len())
-                            } else if a.metadata.is_dir() {
-                                Ordering::Less
-                            } else {
-                                Ordering::Greater
+                    let rv = if a.metadata.is_dir() == b.metadata.is_dir()
+                        || a.metadata.is_file() == b.metadata.is_file()
+                    {
+                        match field.as_str() {
+                            "modified" => {
+                                let a = a.metadata.modified().unwrap();
+                                let b = b.metadata.modified().unwrap();
+                                a.cmp(&b)
                             }
+                            "size" => {
+                                a.metadata.len().cmp(&b.metadata.len())
+                            }
+                            _ => a.filename.cmp(&b.filename),
                         }
-                        _ => unreachable!(),
+                    } else {
+                        if a.metadata.is_dir() {
+                            Ordering::Less
+                        } else {
+                            Ordering::Greater
+                        }
                     };
                     if reverse {
                         rv.reverse()
@@ -705,16 +706,16 @@ impl MainHandler {
             format!(
                 r#"
 <tr>
-  <th><a href="/{link}?sort=name&order={name_order}">Name</a></th>
+  <th><a href="/{link}?order={name_order}">Name</a></th>
   <th><a href="/{link}?sort=modified&order={modified_order}">Last modified</a></th>
   <th><a href="/{link}?sort=size&order={size_order}">Size</a></th>
 </tr>
 <tr><td style="border-top:1px dashed #BBB;" colspan="5"></td></tr>
 "#,
                 link = encode_link_path(&current_link),
-                name_order = order_labels.get("name").unwrap_or(&DEFAULT_ORDER),
-                modified_order = order_labels.get("modified").unwrap_or(&DEFAULT_ORDER),
-                size_order = order_labels.get("size").unwrap_or(&DEFAULT_ORDER)
+                name_order = order_labels.get("name").unwrap_or(&ORDER_DESC),
+                modified_order = order_labels.get("modified").unwrap_or(&ORDER_DESC),
+                size_order = order_labels.get("size").unwrap_or(&ORDER_DESC)
             )
         } else {
             "".to_owned()
@@ -730,7 +731,7 @@ impl MainHandler {
             rows.push(format!(
                 r#"
 <tr>
-  <td><a href="/{link}"><strong>[Up]</strong></a></td>
+  <td><a href="/{link}"><strong>..</strong></a></td>
   <td></td>
   <td></td>
 </tr>
@@ -758,7 +759,8 @@ impl MainHandler {
                 .to_string();
             // * Entry.filesize
             let file_size = if metadata.is_dir() {
-                "-".to_owned()
+                // "-".to_owned()
+                "文件夹".to_owned()
             } else {
                 convert(metadata.len() as f64)
             };
